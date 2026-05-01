@@ -1,1 +1,692 @@
 # Bondi-Brew
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>☀️ Bondi Brew</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap');
+
+:root {
+  --coffee: #6F4E37;
+  --latte: #C8956C;
+  --cream: #FFF8F0;
+  --green: #27AE60;
+  --red: #E74C3C;
+  --gold: #F39C12;
+  --teal: #1ABC9C;
+  --dark: #2C1810;
+  --card: #FFFDF9;
+  --shadow: rgba(111,78,55,0.18);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+html, body { height: 100%; overflow: hidden; }
+body { font-family: 'Nunito', sans-serif; background: #FDF6EC; color: #3D2B1F; font-size: 14px; }
+
+.screen { display: none; position: fixed; inset: 0; overflow: hidden; flex-direction: column; }
+.screen.active { display: flex; }
+
+/* ── TITLE ── */
+#screen-title {
+  align-items: center; justify-content: center; text-align: center;
+  gap: 18px; padding: 28px 20px;
+  background: linear-gradient(170deg, #FFD180 0%, #FFAB40 55%, #FF8F00 100%);
+  overflow-y: auto;
+}
+.title-sun {
+  width: 80px; height: 80px;
+  background: radial-gradient(circle, #FFF176 20%, #FFD740 60%, #FF8F00 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 14px rgba(255,213,79,.25), 0 0 40px #FFCC00;
+  animation: sun-pulse 2.5s ease-in-out infinite;
+  font-size: 38px; line-height: 80px;
+}
+@keyframes sun-pulse { 0%,100%{transform:scale(1) rotate(0deg)} 50%{transform:scale(1.1) rotate(4deg)} }
+.title-logo { font-family:'Fredoka One',cursive; font-size: 42px; color: #4A2C0A; text-shadow: 3px 3px 0 rgba(255,255,255,.4); }
+.title-sub  { font-size: 12px; font-weight: 800; letter-spacing: 3px; color: #7A4B1A; text-transform: uppercase; margin-top: -4px; }
+.story-box  {
+  background: rgba(255,255,255,.88); border-radius: 20px; padding: 18px 20px;
+  max-width: 340px; width: 100%;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  font-size: 13.5px; line-height: 1.75; color: #5A3E2B;
+}
+.story-box .hed { font-family:'Fredoka One',cursive; font-size: 17px; color: var(--coffee); margin-bottom: 8px; }
+.goal-badge {
+  display: inline-block; margin-top: 10px;
+  background: linear-gradient(135deg, var(--coffee), var(--latte));
+  color: white; border-radius: 30px; padding: 6px 16px;
+  font-size: 13px; font-weight: 800;
+}
+.btn-start {
+  background: linear-gradient(135deg, #3E200A, var(--coffee));
+  color: white; border: none; border-radius: 50px; padding: 16px 44px;
+  font-family:'Fredoka One',cursive; font-size: 22px;
+  box-shadow: 0 6px 20px rgba(74,44,10,.35); cursor: pointer; transition: transform .15s;
+}
+.btn-start:active { transform: scale(.95); }
+
+/* ── HUD ── */
+.hud {
+  background: linear-gradient(135deg, #3E2010, var(--coffee));
+  padding: 10px 14px; padding-top: calc(10px + var(--safe-top));
+  display: flex; align-items: center; flex-shrink: 0;
+  box-shadow: 0 3px 12px var(--shadow); z-index: 10;
+}
+.hud-cell { flex: 1; text-align: center; }
+.hud-cell + .hud-cell { border-left: 1px solid rgba(255,255,255,.12); }
+.hud-lbl { font-size: 9px; color: #D4A97A; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; line-height: 1; margin-bottom: 3px; }
+.hud-val { font-family:'Fredoka One',cursive; font-size: 18px; color: white; line-height: 1; }
+.hud-val.money { color: #FFD54F; }
+.energy-bar { height: 6px; background: rgba(0,0,0,.3); border-radius: 6px; overflow: hidden; width: 52px; margin: 3px auto 2px; }
+.energy-fill { height: 100%; background: linear-gradient(90deg, #66BB6A, #A5D6A7); border-radius: 6px; transition: width .4s; }
+.hud-eval { font-size: 12px; color: white; font-weight: 800; line-height: 1; }
+
+/* ── BOTTOM NAV ── */
+.bottom-nav {
+  display: flex; flex-shrink: 0; background: white;
+  border-top: 1px solid #EDD5B0;
+  padding-bottom: var(--safe-bot);
+  box-shadow: 0 -3px 12px var(--shadow); z-index: 10;
+}
+.nav-btn {
+  flex: 1; padding: 10px 4px 8px; background: none; border: none; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 3px; transition: background .15s;
+}
+.nav-btn.active { background: #FFF3E0; }
+.nav-icon { font-size: 22px; line-height: 1; }
+.nav-lbl  { font-size: 10px; font-weight: 800; color: #A08060; letter-spacing: .5px; }
+.nav-btn.active .nav-lbl { color: var(--coffee); }
+
+/* ── TAB PANELS ── */
+.tab-panel { display: none; flex: 1; overflow-y: auto; overflow-x: hidden; padding: 12px 12px 6px; flex-direction: column; gap: 10px; }
+.tab-panel.active { display: flex; }
+.sec-hd { font-family:'Fredoka One',cursive; font-size: 15px; color: var(--coffee); flex-shrink: 0; }
+
+/* ══ WORK TAB ══ */
+.orders-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; flex-shrink: 0; }
+.orders-row::-webkit-scrollbar { display: none; }
+.ord-card {
+  background: var(--card); border: 2.5px solid #EDD5B0; border-radius: 14px;
+  padding: 8px 10px 12px; min-width: 82px; max-width: 82px;
+  text-align: center; position: relative; flex-shrink: 0;
+  cursor: pointer; transition: transform .12s, border-color .12s;
+  box-shadow: 0 2px 8px var(--shadow);
+}
+.ord-card:active { transform: scale(.93); }
+.ord-card.sel    { border-color: var(--teal); background: #E8FAF5; }
+.ord-card.urgent { border-color: var(--red); animation: wiggle .45s ease infinite alternate; }
+@keyframes wiggle { from{transform:rotate(-2deg)} to{transform:rotate(2deg)} }
+.ord-emoji { font-size: 26px; display: block; margin-bottom: 2px; }
+.ord-name  { font-size: 10px; font-weight: 800; color: #5A3E2B; line-height: 1.2; }
+.ord-price { font-size: 12px; font-weight: 800; color: var(--green); margin-top: 2px; }
+.ord-tbar  { position: absolute; bottom: 0; left: 0; right: 0; height: 5px; border-radius: 0 0 11px 11px; overflow: hidden; background: #EEE; }
+.ord-tfill { height: 100%; border-radius: 0 0 11px 11px; transition: width .5s linear, background .5s; }
+.no-ord-msg { text-align: center; padding: 14px; color: #B0927A; font-size: 13px; background: rgba(255,255,255,.6); border-radius: 12px; flex-shrink: 0; }
+
+/* Selected bar */
+.sel-bar {
+  background: linear-gradient(135deg, #FFF3E0, #FFE0B2);
+  border-radius: 14px; padding: 10px 14px; border: 2px solid #FFD180; flex-shrink: 0;
+}
+.sel-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.sel-em   { font-size: 28px; }
+.sel-name { font-family:'Fredoka One',cursive; font-size: 17px; color: var(--coffee); }
+.sel-price{ font-size: 13px; font-weight: 800; color: var(--green); }
+.rcp-label{ font-size: 10px; font-weight: 800; color: #A08060; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.rcp-strip{ display: flex; flex-wrap: wrap; gap: 5px; }
+.rcp-chip {
+  display: flex; align-items: center; gap: 3px;
+  background: white; border: 1.5px solid #EDD5B0;
+  border-radius: 20px; padding: 4px 9px;
+  font-size: 11px; font-weight: 800; color: #5A3E2B; white-space: nowrap;
+}
+.rcp-chip.done { background: #E0FAF5; border-color: var(--teal); color: #0E8C6E; }
+.rcp-num {
+  width: 17px; height: 17px; border-radius: 50%;
+  background: var(--coffee); color: white;
+  font-size: 10px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.rcp-chip.done .rcp-num { background: var(--teal); }
+.sel-hint { font-size: 13px; color: #B0927A; font-weight: 600; text-align: center; padding: 12px; background: rgba(255,255,255,.5); border-radius: 12px; flex-shrink: 0; }
+
+/* Ingredient grid */
+.ing-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; flex-shrink: 0; }
+.ing-btn {
+  background: linear-gradient(160deg, #FFF8F0, #FFE8CC);
+  border: 2px solid #EDD5B0; border-radius: 12px;
+  padding: 8px 4px 7px; text-align: center; cursor: pointer;
+  transition: all .12s; display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.ing-btn:active { transform: scale(.88); }
+.ing-btn.added  { border-color: var(--teal);  background: linear-gradient(160deg, #DFF9F4, #C0EFE5); }
+.ing-btn.needed { border-color: var(--gold);  background: linear-gradient(160deg, #FFF8E1, #FFECB3); }
+.ing-em  { font-size: 24px; line-height: 1; }
+.ing-nm  { font-size: 9px; font-weight: 800; color: #7B5E44; line-height: 1.1; }
+.ing-btn.added  .ing-nm { color: #0E8C6E; }
+.ing-btn.needed .ing-nm { color: #9A6E00; }
+
+/* Cup */
+.cup-box {
+  min-height: 54px; background: linear-gradient(135deg, #F5EDE0, #EDE0CC);
+  border-radius: 12px; border: 2px dashed #D4A97A;
+  display: flex; align-items: center; justify-content: center;
+  flex-wrap: wrap; gap: 5px; padding: 8px; flex-shrink: 0;
+}
+.cup-placeholder { font-size: 12px; color: #B0927A; font-weight: 600; }
+.cup-chip { background: white; border-radius: 8px; padding: 4px 8px; font-size: 17px; box-shadow: 0 1px 4px rgba(0,0,0,.1); display: flex; flex-direction: column; align-items: center; }
+.cup-chip-nm { font-size: 9px; color: #7B5E44; font-weight: 800; }
+
+.action-row { display: flex; gap: 8px; flex-shrink: 0; }
+.btn-clear {
+  padding: 14px 14px; background: #F0E8DC; border: 2px solid #D4B896;
+  border-radius: 14px; font-size: 20px; cursor: pointer; transition: transform .12s; flex-shrink: 0;
+}
+.btn-clear:active { transform: scale(.9); }
+.btn-serve {
+  flex: 1; padding: 14px; background: linear-gradient(135deg, var(--teal), #16A085);
+  color: white; border: none; border-radius: 14px;
+  font-family:'Fredoka One',cursive; font-size: 20px;
+  cursor: pointer; box-shadow: 0 4px 14px rgba(26,188,156,.4); transition: transform .12s;
+}
+.btn-serve:active { transform: scale(.96); }
+
+/* ══ MENU TAB ══ */
+.menu-card { background: var(--card); border-radius: 16px; border: 2px solid #EDD5B0; box-shadow: 0 2px 10px var(--shadow); overflow: hidden; flex-shrink: 0; }
+.menu-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: linear-gradient(135deg, #FFF3E0, #FFE8CC); border-bottom: 1.5px solid #EDD5B0; }
+.menu-em   { font-size: 32px; }
+.menu-nm   { font-family:'Fredoka One',cursive; font-size: 17px; color: var(--coffee); }
+.menu-pr   { font-size: 13px; font-weight: 800; color: var(--green); }
+.menu-body { padding: 10px 14px; }
+.rcp-lbl   { font-size: 10px; font-weight: 800; color: #A08060; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.rcp-flow  { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.rcp-step  { display: flex; align-items: center; gap: 4px; background: #FFF3E0; border: 1.5px solid #EDD5B0; border-radius: 20px; padding: 4px 10px; font-size: 12px; font-weight: 800; color: #5A3E2B; white-space: nowrap; }
+.step-num  { width: 18px; height: 18px; border-radius: 50%; background: var(--coffee); color: white; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.rcp-arrow { color: #C4A07A; font-size: 14px; font-weight: 800; }
+.menu-tip  { margin-top: 8px; font-size: 11px; color: #A08060; font-weight: 600; line-height: 1.5; padding: 6px 8px; background: rgba(255,255,255,.6); border-radius: 8px; }
+
+/* ══ LIFE TAB ══ */
+.day-banner {
+  background: linear-gradient(135deg, #3E2010, var(--coffee));
+  color: white; border-radius: 16px; padding: 14px 16px;
+  display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+}
+.day-lbl { font-size: 10px; color: #D4A97A; font-weight: 800; text-transform: uppercase; letter-spacing: .8px; }
+.day-val  { font-family:'Fredoka One',cursive; font-size: 24px; color: white; }
+.btn-nextday {
+  background: linear-gradient(135deg, #FFD740, var(--gold));
+  color: #4A2C0A; border: none; border-radius: 12px; padding: 10px 16px;
+  font-family:'Fredoka One',cursive; font-size: 16px;
+  cursor: pointer; box-shadow: 0 3px 10px rgba(243,156,18,.4); transition: transform .12s;
+}
+.btn-nextday:active { transform: scale(.95); }
+.stats-card {
+  background: var(--card); border-radius: 16px; border: 2px solid #EDD5B0;
+  padding: 12px 14px; box-shadow: 0 2px 10px var(--shadow); flex-shrink: 0;
+}
+.stat-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #F5E6C8; }
+.stat-row:last-child { border-bottom: none; }
+.stat-lbl { font-size: 13px; font-weight: 700; color: #7B5E44; }
+.stat-val { font-size: 14px; font-weight: 800; }
+.ok  { color: var(--green); }
+.warn{ color: var(--gold); }
+.bad { color: var(--red); }
+.exp-row {
+  background: var(--card); border-radius: 14px; border: 2px solid #EDD5B0;
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  box-shadow: 0 2px 8px var(--shadow); flex-shrink: 0;
+}
+.exp-em   { font-size: 28px; flex-shrink: 0; }
+.exp-info { flex: 1; min-width: 0; }
+.exp-name { font-size: 13px; font-weight: 800; color: #5A3E2B; }
+.exp-meta { font-size: 11px; color: #A08060; font-weight: 600; margin-top: 1px; }
+.exp-cost { font-size: 15px; font-weight: 800; color: var(--red); flex-shrink: 0; margin-right: 4px; }
+.btn-pay {
+  padding: 8px 12px; background: linear-gradient(135deg, var(--coffee), var(--latte));
+  color: white; border: none; border-radius: 10px;
+  font-family:'Fredoka One',cursive; font-size: 13px;
+  cursor: pointer; transition: transform .12s; flex-shrink: 0; white-space: nowrap;
+}
+.btn-pay:active { transform: scale(.9); }
+.btn-pay:disabled { background: #CCC; cursor: not-allowed; }
+
+/* ══ LOG TAB ══ */
+.log-feed { display: flex; flex-direction: column; gap: 6px; }
+.log-item { background: var(--card); border-radius: 12px; padding: 9px 12px; border-left: 4px solid #D4B896; box-shadow: 0 1px 6px var(--shadow); animation: fadein .25s ease; flex-shrink: 0; }
+@keyframes fadein { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:none} }
+.log-item.good { border-left-color: var(--green); }
+.log-item.bad  { border-left-color: var(--red); }
+.log-item.info { border-left-color: var(--teal); }
+.log-day { font-size: 9px; color: #A08060; font-weight: 800; margin-bottom: 2px; }
+.log-msg { font-size: 13px; font-weight: 600; color: #3D2B1F; }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: calc(72px + var(--safe-bot) + 10px); left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: #2C1810; color: white; border-radius: 40px;
+  padding: 11px 22px; font-family:'Fredoka One',cursive; font-size: 16px;
+  opacity: 0; transition: all .25s; z-index: 999;
+  pointer-events: none; white-space: nowrap;
+  box-shadow: 0 6px 20px rgba(0,0,0,.25);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.good { background: linear-gradient(135deg, var(--teal), #148F77); }
+.toast.bad  { background: linear-gradient(135deg, var(--red), #B03A2E); }
+
+/* RESULT SCREENS */
+#screen-gameover { background: linear-gradient(170deg,#1A0A04,#3E1008); align-items:center; justify-content:center; text-align:center; gap:18px; padding:30px 20px; }
+#screen-win      { background: linear-gradient(170deg,#E8F5E9,#DCEDC8); align-items:center; justify-content:center; text-align:center; gap:18px; padding:30px 20px; }
+.go-title  { font-family:'Fredoka One',cursive; font-size: 36px; color: #FF6B35; text-shadow: 2px 2px 0 #2C0A00; }
+.win-title { font-family:'Fredoka One',cursive; font-size: 32px; color: var(--coffee); }
+.result-card { background:var(--card); border-radius:20px; padding:18px 20px; max-width:320px; width:100%; box-shadow:0 8px 24px var(--shadow); border:2px solid #EDD5B0; }
+.res-row { display:flex; justify-content:space-between; align-items:center; font-size:14px; padding:7px 0; border-bottom:1px solid #F5E6C8; }
+.res-row:last-child { border-bottom:none; }
+.res-lbl { font-weight:700; color:#7B5E44; }
+.res-val { font-weight:800; }
+</style>
+</head>
+<body>
+
+<!-- TITLE -->
+<div id="screen-title" class="screen active">
+  <div class="title-sun">☀️</div>
+  <div><div class="title-logo">Bondi Brew</div><div class="title-sub">🦘 Aussie Café Life</div></div>
+  <div class="story-box">
+    <div class="hed">🇯🇵→🇦🇺 ワーキングホリデー出発！</div>
+    シドニーのカフェ <strong>「Bondi Brew」</strong> でバリスタとして働くことになった！<br>
+    注文を受けてドリンクを作り、生活費を払いながら貯金しよう。
+    <br><span class="goal-badge">🎯 目標：60日間で $3,000 貯めて帰国！</span>
+  </div>
+  <button class="btn-start" onclick="startGame()">🛫 オーストラリアへ出発！</button>
+</div>
+
+<!-- GAME -->
+<div id="screen-game" class="screen">
+  <div class="hud">
+    <div class="hud-cell"><div class="hud-lbl">💰 所持金</div><div class="hud-val money" id="hud-money">$0</div></div>
+    <div class="hud-cell"><div class="hud-lbl">📅 日数</div><div class="hud-val" id="hud-day">Day 1</div></div>
+    <div class="hud-cell"><div class="hud-lbl">⭐ スコア</div><div class="hud-val" id="hud-score">0</div></div>
+    <div class="hud-cell">
+      <div class="hud-lbl">⚡ 体力</div>
+      <div class="energy-bar"><div class="energy-fill" id="energy-fill"></div></div>
+      <div class="hud-eval" id="hud-energy">100</div>
+    </div>
+  </div>
+
+  <!-- WORK -->
+  <div id="panel-work" class="tab-panel active">
+    <div class="sec-hd">📋 注文キュー <span style="font-size:12px;font-weight:600;color:#A08060">（カードをタップして選択）</span></div>
+    <div id="order-queue" class="orders-row"></div>
+    <div id="sel-area"></div>
+    <div class="sec-hd">🧪 材料を選ぶ <span style="font-size:11px;font-weight:600;color:#A08060">黄＝必要 · 緑＝追加済</span></div>
+    <div class="ing-grid" id="ing-grid"></div>
+    <div>
+      <div class="sec-hd" style="margin-bottom:6px">☕ カップの中身</div>
+      <div class="cup-box" id="cup-box"><span class="cup-placeholder">材料をタップして入れよう</span></div>
+    </div>
+    <div class="action-row">
+      <button class="btn-clear" onclick="clearCup()">🗑️</button>
+      <button class="btn-serve" onclick="serve()">🚀 提供する！</button>
+    </div>
+  </div>
+
+  <!-- MENU -->
+  <div id="panel-menu" class="tab-panel">
+    <div class="sec-hd">📖 メニュー &amp; レシピ表</div>
+    <div id="menu-list"></div>
+  </div>
+
+  <!-- LIFE -->
+  <div id="panel-life" class="tab-panel">
+    <div class="day-banner">
+      <div><div class="day-lbl">現在の日数</div><div class="day-val" id="life-day">Day 1 / 60</div></div>
+      <button class="btn-nextday" onclick="nextDay()">翌日へ →</button>
+    </div>
+    <div class="stats-card">
+      <div class="stat-row"><span class="stat-lbl">🏦 所持金</span><span class="stat-val" id="life-money">$0</span></div>
+      <div class="stat-row"><span class="stat-lbl">🎯 目標まで</span><span class="stat-val" id="life-goal">$3,000</span></div>
+      <div class="stat-row"><span class="stat-lbl">☕ 提供杯数</span><span class="stat-val" id="life-drinks">0杯</span></div>
+      <div class="stat-row"><span class="stat-lbl">⭐ 評価</span><span class="stat-val" id="life-rating">-</span></div>
+    </div>
+    <div class="sec-hd">💸 生活費の支払い</div>
+    <div id="expense-list" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+
+  <!-- LOG -->
+  <div id="panel-log" class="tab-panel">
+    <div class="sec-hd">📋 プレイログ</div>
+    <div class="log-feed" id="log-feed"></div>
+  </div>
+
+  <div class="bottom-nav">
+    <button class="nav-btn active" id="nav-work" onclick="switchTab('work')"><span class="nav-icon">☕</span><span class="nav-lbl">勤務</span></button>
+    <button class="nav-btn" id="nav-menu" onclick="switchTab('menu')"><span class="nav-icon">📖</span><span class="nav-lbl">メニュー</span></button>
+    <button class="nav-btn" id="nav-life" onclick="switchTab('life')"><span class="nav-icon">🏠</span><span class="nav-lbl">生活</span></button>
+    <button class="nav-btn" id="nav-log"  onclick="switchTab('log')"><span class="nav-icon">📋</span><span class="nav-lbl">ログ</span></button>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div id="screen-gameover" class="screen">
+  <div style="font-size:56px">😢</div>
+  <div class="go-title">ゲームオーバー</div>
+  <div class="result-card">
+    <p style="font-size:13px;color:#7B5E44;margin-bottom:12px;line-height:1.6">お金が足りなくなって生活できなくなりました…<br>ビザを延長できず、帰国することに。</p>
+    <div class="res-row"><span class="res-lbl">生存日数</span><span class="res-val" id="go-days">0日</span></div>
+    <div class="res-row"><span class="res-lbl">最終所持金</span><span class="res-val" id="go-money">$0</span></div>
+    <div class="res-row"><span class="res-lbl">提供ドリンク</span><span class="res-val" id="go-drinks">0杯</span></div>
+    <div class="res-row"><span class="res-lbl">獲得スコア</span><span class="res-val" id="go-score">0pt</span></div>
+  </div>
+  <button class="btn-start" onclick="restartGame()">🔄 もう一度チャレンジ</button>
+</div>
+
+<!-- WIN -->
+<div id="screen-win" class="screen">
+  <div style="font-size:60px">🎊</div>
+  <div class="win-title">WHV成功！おめでとう！</div>
+  <div class="result-card">
+    <p style="font-size:13px;color:#5A3E2B;margin-bottom:12px;line-height:1.6">60日間オーストラリアで働き続け、<br>目標金額を達成して帰国しました！</p>
+    <div class="res-row"><span class="res-lbl">🏦 最終貯金</span><span class="res-val ok" id="win-money">$0</span></div>
+    <div class="res-row"><span class="res-lbl">☕ 提供ドリンク</span><span class="res-val" id="win-drinks">0杯</span></div>
+    <div class="res-row"><span class="res-lbl">⭐ スコア</span><span class="res-val" id="win-score">0pt</span></div>
+    <div class="res-row"><span class="res-lbl">🦘 称号</span><span class="res-val warn" id="win-rank">-</span></div>
+  </div>
+  <button class="btn-start" onclick="restartGame()">🔄 もう一度プレイ</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const INGREDIENTS = [
+  { id:'espresso',  name:'エスプレッソ', emoji:'🫘' },
+  { id:'milk',      name:'ミルク',       emoji:'🥛' },
+  { id:'foam',      name:'フォーム',     emoji:'🫧' },
+  { id:'water',     name:'お湯',         emoji:'💧' },
+  { id:'ice',       name:'アイス',       emoji:'🧊' },
+  { id:'chocolate', name:'チョコ',       emoji:'🍫' },
+  { id:'chai',      name:'チャイ',       emoji:'🫖' },
+  { id:'matcha',    name:'抹茶',         emoji:'🍵' },
+  { id:'bread',     name:'パン',         emoji:'🍞' },
+  { id:'avocado',   name:'アボカド',     emoji:'🥑' },
+  { id:'eggs',      name:'エッグ',       emoji:'🥚' },
+  { id:'syrup',     name:'シロップ',     emoji:'🍯' },
+];
+const IM = Object.fromEntries(INGREDIENTS.map(i => [i.id, i]));
+
+const DRINKS = [
+  { id:'flat_white',   name:'Flat White',    emoji:'☕', price:4.5,  recipe:['espresso','milk','foam'],              tip:'エスプレッソ+ミルク+フォームの定番。オーストラリア発祥！' },
+  { id:'long_black',   name:'Long Black',    emoji:'🖤', price:4.0,  recipe:['espresso','water'],                   tip:'お湯の上にエスプレッソ。シンプルで力強い黒コーヒー。' },
+  { id:'cappuccino',   name:'Cappuccino',    emoji:'☕', price:4.8,  recipe:['espresso','milk','foam','chocolate'],  tip:'チョコパウダーが決め手！フォームたっぷりのイタリアン定番。' },
+  { id:'latte',        name:'Café Latte',    emoji:'🥛', price:4.5,  recipe:['espresso','milk'],                    tip:'ミルクたっぷり。フォームなしがラテのポイント！' },
+  { id:'iced_latte',   name:'Iced Latte',    emoji:'🧊', price:5.0,  recipe:['espresso','milk','ice'],              tip:'暑いオーストラリアの夏に大人気！アイスを忘れずに。' },
+  { id:'chai_latte',   name:'Chai Latte',    emoji:'🫖', price:4.8,  recipe:['chai','milk','foam'],                 tip:'スパイシーなチャイにフォームを合わせた温かい一杯。' },
+  { id:'matcha_latte', name:'Matcha Latte',  emoji:'🍵', price:5.5,  recipe:['matcha','milk','foam'],               tip:'日本の抹茶がオーストラリアでも大人気！ヘルシー系。' },
+  { id:'caramel_latte',name:'Caramel Latte', emoji:'🍯', price:5.2,  recipe:['espresso','milk','syrup'],            tip:'シロップで甘さをプラス。スイーツ系が好きな方に◎' },
+  { id:'avo_toast',    name:'Avo Toast',     emoji:'🥑', price:14.0, recipe:['bread','avocado','eggs'],             tip:'Aussie朝食の定番！高め価格だけど売れ筋メニュー。' },
+];
+
+const EXPENSES = [
+  { id:'rent',      name:'家賃',   emoji:'🏠', cost:180, freq:'weekly',  label:'週払い' },
+  { id:'food',      name:'食費',   emoji:'🛒', cost:80,  freq:'weekly',  label:'週払い' },
+  { id:'transport', name:'交通費', emoji:'🚌', cost:40,  freq:'weekly',  label:'週払い' },
+  { id:'phone',     name:'スマホ', emoji:'📱', cost:30,  freq:'monthly', label:'月払い' },
+];
+
+let G = {}, OT = {}, OID = 0;
+
+function startGame() {
+  OT = {}; OID = 0;
+  G = { money:50, day:1, energy:100, score:0, drinks:0, orders:[], sel:null, cup:[], paid:{}, log:[], sp:null };
+  showScreen('game');
+  switchTab('work');
+  renderMenu();
+  renderIngGrid();
+  updateHUD();
+  spawnLoop();
+  log('🛫 オーストラリアに到着！Bondi Brewでの初日が始まった。', 'info');
+  log(`💰 初期資金 $${G.money}。まずは注文をこなして稼ごう！`, 'info');
+}
+
+function showScreen(n) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById('screen-'+n).classList.add('active'); }
+function restartGame() { clearAll(); showScreen('title'); }
+
+// ── ORDERS ──
+function spawnLoop() {
+  if (G.sp) clearInterval(G.sp);
+  spawnOne();
+  G.sp = setInterval(() => { if (G.orders.length < 5) spawnOne(); }, 6000);
+}
+function spawnOne() {
+  const d = DRINKS[Math.floor(Math.random() * DRINKS.length)];
+  const tl = d.recipe.length * 8 + 12;
+  const o = { id: ++OID, drink: d, tl, rem: tl, urgent: false };
+  G.orders.push(o); renderOrders(); tickOrder(o);
+}
+function tickOrder(o) {
+  const iv = setInterval(() => {
+    o.rem -= 0.5; o.urgent = o.rem < o.tl * 0.3;
+    if (o.rem <= 0) {
+      clearInterval(iv); delete OT[o.id];
+      G.orders = G.orders.filter(x => x.id !== o.id);
+      if (G.sel?.id === o.id) { G.sel = null; G.cup = []; updateSel(); renderIngGrid(); renderCup(); }
+      G.energy = Math.max(0, G.energy - 5);
+      log(`⏰ タイムアウト！${o.drink.name}がキャンセル。体力-5`, 'bad');
+      renderOrders(); updateHUD(); return;
+    }
+    const f = document.getElementById('otf-'+o.id);
+    const c = document.getElementById('oc-'+o.id);
+    if (f) { const p = (o.rem/o.tl)*100; f.style.width=p+'%'; f.style.background = p>50?'#27AE60':p>25?'#F39C12':'#E74C3C'; }
+    if (c) c.classList.toggle('urgent', o.urgent);
+  }, 500);
+  OT[o.id] = iv;
+}
+function renderOrders() {
+  const el = document.getElementById('order-queue');
+  if (!G.orders.length) { el.innerHTML='<div class="no-ord-msg">📭 注文待ち中… しばらくお待ちください</div>'; return; }
+  el.innerHTML = G.orders.map(o => `
+    <div class="ord-card ${G.sel?.id===o.id?'sel':''} ${o.urgent?'urgent':''}" id="oc-${o.id}" onclick="selOrder(${o.id})">
+      <span class="ord-emoji">${o.drink.emoji}</span>
+      <div class="ord-name">${o.drink.name}</div>
+      <div class="ord-price">$${o.drink.price.toFixed(2)}</div>
+      <div class="ord-tbar"><div class="ord-tfill" id="otf-${o.id}" style="width:${(o.rem/o.tl)*100}%"></div></div>
+    </div>`).join('');
+}
+function selOrder(id) { G.sel = G.orders.find(o=>o.id===id)||null; G.cup=[]; renderOrders(); renderIngGrid(); updateSel(); renderCup(); }
+
+// ── SEL AREA ──
+function updateSel() {
+  const a = document.getElementById('sel-area');
+  if (!G.sel) { a.innerHTML='<div class="sel-hint">👆 上の注文カードをタップして選択しよう</div>'; return; }
+  const d = G.sel.drink;
+  const chips = d.recipe.map((rid,i) => {
+    const ing = IM[rid];
+    const done = G.cup.includes(rid);
+    return `<div class="rcp-chip ${done?'done':''}"><div class="rcp-num">${done?'✓':i+1}</div>${ing.emoji} ${ing.name}</div>`;
+  }).join('');
+  a.innerHTML = `<div class="sel-bar">
+    <div class="sel-top"><div class="sel-em">${d.emoji}</div><div><div class="sel-name">${d.name}</div><div class="sel-price">$${d.price.toFixed(2)}</div></div></div>
+    <div class="rcp-label">📋 必要な材料（順番不問）</div>
+    <div class="rcp-strip">${chips}</div>
+  </div>`;
+}
+
+// ── INGREDIENTS ──
+function renderIngGrid() {
+  const needed = G.sel ? G.sel.drink.recipe : [];
+  document.getElementById('ing-grid').innerHTML = INGREDIENTS.map(ing => {
+    const added = G.cup.includes(ing.id);
+    const need  = needed.includes(ing.id) && !added;
+    return `<button class="ing-btn ${added?'added':need?'needed':''}" onclick="addIng('${ing.id}')">
+      <span class="ing-em">${ing.emoji}</span><span class="ing-nm">${ing.name}</span>
+    </button>`;
+  }).join('');
+}
+function addIng(id) {
+  if (!G.sel) { showToast('⚠️ まず注文を選んでね！','bad'); return; }
+  const i = G.cup.indexOf(id);
+  i >= 0 ? G.cup.splice(i,1) : G.cup.push(id);
+  renderIngGrid(); updateSel(); renderCup();
+}
+function clearCup() { G.cup=[]; renderIngGrid(); updateSel(); renderCup(); }
+function renderCup() {
+  const b = document.getElementById('cup-box');
+  if (!G.cup.length) { b.innerHTML='<span class="cup-placeholder">材料をタップして入れよう</span>'; return; }
+  b.innerHTML = G.cup.map(id => { const ing=IM[id]; return `<div class="cup-chip">${ing.emoji}<span class="cup-chip-nm">${ing.name}</span></div>`; }).join('');
+}
+
+// ── SERVE ──
+function serve() {
+  if (!G.sel)       { showToast('⚠️ 注文を選んでね！','bad'); return; }
+  if (!G.cup.length){ showToast('⚠️ 材料を入れてね！','bad'); return; }
+  const o = G.sel;
+  const ok = arrEq([...o.drink.recipe].sort(), [...G.cup].sort());
+  if (ok) {
+    G.money += o.drink.price; G.score += Math.round(o.drink.price*10); G.drinks++;
+    G.energy = Math.max(0, G.energy - 3);
+    clearInterval(OT[o.id]); delete OT[o.id];
+    G.orders = G.orders.filter(x=>x.id!==o.id); G.sel=null; G.cup=[];
+    showToast(`✅ +$${o.drink.price.toFixed(2)} 完璧！`,'good');
+    log(`☕ ${o.drink.name} を提供 → +$${o.drink.price.toFixed(2)}`,'good');
+  } else {
+    G.score = Math.max(0, G.score-5); G.energy = Math.max(0, G.energy-5);
+    const ans = o.drink.recipe.map(id=>IM[id].emoji).join('');
+    showToast('❌ レシピが違う！','bad');
+    log(`❌ ${o.drink.name} のレシピ間違い。正解: ${ans}`,'bad');
+    G.cup=[];
+  }
+  renderOrders(); renderIngGrid(); updateSel(); renderCup(); updateHUD(); updateLife(); checkEnd();
+}
+function arrEq(a,b){ return a.length===b.length && a.every((v,i)=>v===b[i]); }
+
+// ── MENU ──
+function renderMenu() {
+  document.getElementById('menu-list').innerHTML = DRINKS.map(d => {
+    const steps = d.recipe.map((rid,i) => {
+      const ing = IM[rid];
+      return `<div class="rcp-step"><div class="step-num">${i+1}</div>${ing.emoji} ${ing.name}</div>${i<d.recipe.length-1?'<span class="rcp-arrow">→</span>':''}`;
+    }).join('');
+    return `<div class="menu-card" style="margin-bottom:8px">
+      <div class="menu-head"><div class="menu-em">${d.emoji}</div><div><div class="menu-nm">${d.name}</div><div class="menu-pr">$${d.price.toFixed(2)}</div></div></div>
+      <div class="menu-body">
+        <div class="rcp-lbl">レシピ（手順）</div>
+        <div class="rcp-flow">${steps}</div>
+        <div class="menu-tip">💡 ${d.tip}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── LIFE ──
+function expKey(e){ return e.freq==='weekly' ? `${e.id}_w${Math.floor((G.day-1)/7)}` : `${e.id}_m${Math.floor((G.day-1)/30)}`; }
+function renderExpenses() {
+  document.getElementById('expense-list').innerHTML = EXPENSES.map(e => {
+    const paid = G.paid[expKey(e)];
+    return `<div class="exp-row">
+      <div class="exp-em">${e.emoji}</div>
+      <div class="exp-info"><div class="exp-name">${e.name}</div><div class="exp-meta">${e.label} · 週次必須</div></div>
+      <div class="exp-cost">$${e.cost}</div>
+      <button class="btn-pay" onclick="payExp('${e.id}')" ${paid?'disabled':''}>${paid?'✅ 済':'💳 払う'}</button>
+    </div>`;
+  }).join('');
+}
+function payExp(id) {
+  const e = EXPENSES.find(x=>x.id===id); if (!e) return;
+  const k = expKey(e);
+  if (G.paid[k]) { showToast('✅ 支払い済み！'); return; }
+  if (G.money < e.cost) { showToast('💸 お金が足りない！','bad'); log(`💸 ${e.name} 支払い失敗（残高不足）`,'bad'); return; }
+  G.money -= e.cost; G.paid[k] = true;
+  showToast(`${e.emoji} $${e.cost} 支払いました`,'good');
+  log(`${e.emoji} ${e.name} $${e.cost} を支払い`,'info');
+  updateHUD(); updateLife(); checkEnd();
+}
+function updateLife() {
+  document.getElementById('life-day').textContent = `Day ${G.day} / 60`;
+  const m = document.getElementById('life-money');
+  m.textContent = `$${G.money.toFixed(2)}`;
+  m.className = 'stat-val '+(G.money>200?'ok':G.money>50?'warn':'bad');
+  const g = document.getElementById('life-goal');
+  const need = 3000 - G.money;
+  g.textContent = need<=0 ? '🎉 達成！' : `あと $${need.toFixed(0)}`;
+  g.className = 'stat-val '+(need<=0?'ok':'warn');
+  document.getElementById('life-drinks').textContent = G.drinks + '杯';
+  document.getElementById('life-rating').textContent = rating();
+  renderExpenses();
+}
+function nextDay() {
+  const unpaid = EXPENSES.filter(e => {
+    const due = (e.freq==='weekly'&&G.day%7===0)||(e.freq==='monthly'&&G.day%30===0);
+    return due && !G.paid[expKey(e)];
+  });
+  G.day++; G.energy = Math.min(100, G.energy+30);
+  if (G.day > 60) { G.money >= 3000 ? showWin() : showGO(); return; }
+  unpaid.forEach(e => { G.money -= e.cost*1.5; log(`⚠️ ${e.name} 未払いペナルティ $${(e.cost*1.5).toFixed(0)} 引かれた`,'bad'); });
+  log(`🌅 Day ${G.day} スタート！体力が少し回復。`,'info');
+  updateHUD(); updateLife(); checkEnd();
+  showToast(`🌅 Day ${G.day} スタート！`,'good');
+}
+function rating() {
+  if (!G.drinks) return '🌱 Beginner';
+  const a = G.score/G.drinks;
+  return a>40?'⭐⭐⭐ Brilliant!':a>25?'⭐⭐ Good job!':'⭐ Keep going!';
+}
+
+// ── HUD ──
+function updateHUD() {
+  document.getElementById('hud-money').textContent  = `$${G.money.toFixed(0)}`;
+  document.getElementById('hud-day').textContent    = `Day ${G.day}`;
+  document.getElementById('hud-score').textContent  = G.score;
+  document.getElementById('hud-energy').textContent = Math.round(G.energy);
+  document.getElementById('energy-fill').style.width = G.energy+'%';
+}
+
+// ── LOG ──
+function log(msg, type='') { G.log.unshift({msg,type,day:G.day}); if (document.getElementById('panel-log').classList.contains('active')) renderLog(); }
+function renderLog() { document.getElementById('log-feed').innerHTML = G.log.slice(0,60).map(l=>`<div class="log-item ${l.type}"><div class="log-day">Day ${l.day}</div><div class="log-msg">${l.msg}</div></div>`).join(''); }
+
+// ── TABS ──
+function switchTab(n) {
+  ['work','menu','life','log'].forEach(t => {
+    document.getElementById('panel-'+t).classList.toggle('active',t===n);
+    const nb = document.getElementById('nav-'+t); if (nb) nb.classList.toggle('active',t===n);
+  });
+  if (n==='life') updateLife();
+  if (n==='log')  renderLog();
+}
+
+// ── END ──
+function checkEnd() { if (G.money < -200) showGO(); }
+function showGO() {
+  clearAll();
+  document.getElementById('go-days').textContent   = G.day+'日';
+  document.getElementById('go-money').textContent  = `$${G.money.toFixed(2)}`;
+  document.getElementById('go-drinks').textContent = G.drinks+'杯';
+  document.getElementById('go-score').textContent  = G.score+'pt';
+  showScreen('gameover');
+}
+function showWin() {
+  clearAll();
+  document.getElementById('win-money').textContent  = `$${G.money.toFixed(2)}`;
+  document.getElementById('win-drinks').textContent = G.drinks+'杯';
+  document.getElementById('win-score').textContent  = G.score+'pt';
+  document.getElementById('win-rank').textContent   = G.money>=5000?'🏆 Legendary Barista':G.money>=3500?'🥇 Master Brewer':'🥈 Café Champion';
+  showScreen('win');
+}
+function clearAll() { Object.values(OT).forEach(clearInterval); if (G.sp) clearInterval(G.sp); }
+
+// ── TOAST ──
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className='toast '+type+' show';
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove('show'), 2000);
+}
+
+// init sel area
+document.getElementById('sel-area').innerHTML = '<div class="sel-hint">👆 上の注文カードをタップして選択しよう</div>';
+</script>
+</body>
+</html>
